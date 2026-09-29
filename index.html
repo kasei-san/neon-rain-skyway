@@ -89,7 +89,7 @@ const REC = query.has('rec');
 // ?snap=3,10,...: 指定した秒に canvas を PNG で保存用サーバーへ送る（見た目の確認用）
 const SNAP = (query.get('snap') || '').split(',').map(Number).filter((x) => x > 0);
 const DEMO = query.has('demo');
-const PV = (REC && !DEMO) || query.has('pv');
+const PV = !DEMO && (REC || query.has('pv'));   // ?pv と ?demo を同時に付けたらデモを優先する
 const REC_W = 1280, REC_H = 720;
 const PV_END = 1600;   // 自車は s=150 から時速90kmくらいで飛ぶので、ここまで約1分
 const GATED = PV || DEMO;   // クリックで始める（音を鳴らすため）
@@ -106,6 +106,7 @@ const params = {
 // ============================================================
 const rand = (a, b) => a + Math.random() * (b - a);
 const randInt = (a, b) => Math.floor(rand(a, b));          // [a, b)
+const typing = (e) => e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement;
 const pick = (a) => a[Math.floor(Math.random() * a.length)];
 const chance = (p) => Math.random() < p;
 const col = (hex, k = 1) => new THREE.Color(hex).multiplyScalar(k);
@@ -2207,7 +2208,10 @@ const autoCamCtrl = gui.add(params, 'autoCam').name('カメラ自動切替（C �
 gui.add(params, 'music', 0, 1, 0.05).name('音楽の音量').onChange((v) => { if (snd.ctx) snd.music.gain.value = v; });
 gui.add(params, 'sfx', 0, 1.5, 0.05).name('効果音の音量').onChange((v) => { if (snd.ctx) snd.sfx.gain.value = v; });
 gui.close();
-addEventListener('keydown', (e) => { if (e.key === 'g' || e.key === 'G') gui.show(gui._hidden); });
+addEventListener('keydown', (e) => {
+  if (typing(e)) return;
+  if (e.key === 'g' || e.key === 'G') gui.show(gui._hidden);
+});
 
 // ============================================================
 // サウンド（音楽も効果音も Web Audio で合成。音源ファイルは使わない）
@@ -2296,6 +2300,7 @@ document.addEventListener('visibilitychange', () => {
   if (document.hidden) snd.ctx.suspend(); else snd.ctx.resume();
 });
 addEventListener('keydown', (e) => {
+  if (typing(e)) return;
   if ((e.key === 'm' || e.key === 'M') && snd.ctx) {
     snd.muted = !snd.muted;
     snd.master.gain.setTargetAtTime(snd.muted ? 0 : 1, snd.ctx.currentTime, 0.05);
@@ -2647,7 +2652,10 @@ function updateCamera(dt, t) {
   haze.position.set(Math.round(camera.position.x / hazeTile) * hazeTile, 0, Math.round(camera.position.z / hazeTile) * hazeTile);
   hazeTex.offset.x = (hazeTex.offset.x + dt * 0.004) % 1;   // ゆっくり流す
 }
-addEventListener('keydown', (e) => { if (e.key === 'c' || e.key === 'C') switchCamera(false); });
+addEventListener('keydown', (e) => {
+  if (typing(e)) return;
+  if (e.key === 'c' || e.key === 'C') switchCamera(false);
+});
 
 
 // エリアの境目から 120m かけて、霧と環境光を次のエリアに寄せる
@@ -2737,6 +2745,7 @@ const AREA_CHOICES = Object.fromEntries(AREA_ORDER.map((a) => [AREAS[a].name, a]
 params.area = START_AREA;
 const areaCtrl = gui.add(params, 'area', AREA_CHOICES).name('エリアへ移動（1〜4）').onChange(jumpToArea);
 addEventListener('keydown', (e) => {
+  if (typing(e)) return;
   const i = Number(e.key) - 1;
   if (!GATED && i >= 0 && i < AREA_ORDER.length) { params.area = AREA_ORDER[i]; areaCtrl.updateDisplay(); jumpToArea(AREA_ORDER[i]); }
 });
