@@ -86,7 +86,13 @@ chrome --user-data-dir=tmp_chrome_profile --no-first-run \
 ```
 
 - 4エリアを1周すると、`out/demo_raw.webm` と、エリアが切り替わった時刻の `out/demo_areas.json` が保存されます
-- 画面に重ねたエリア名は録画に写らないので、スマホ向けの mp4 に変換するときに、この時刻を使って ffmpeg の `drawtext` で焼き込みます
+- 画面に重ねたエリア名は録画に写りません。入れたいときは、この時刻を使って ffmpeg の `drawtext` で焼き込みます
+
+```sh
+# 3. スマホ向けの mp4（H.264 / AAC）に変換する
+#    フィルムの粒子感と雨で圧縮が効きにくいので、軽くノイズを取ってビットレートに上限を付ける
+ffmpeg -i out/demo_raw.webm -vf "fps=30,hqdn3d=3:3:6:6,format=yuv420p"   -c:v libx264 -preset slow -crf 26 -maxrate 1800k -bufsize 3600k -profile:v high -level 4.0   -c:a aac -b:a 128k -ar 48000 -movflags +faststart out/neon_rain_skyway_demo.mp4
+```
 
 ## 技術メモ
 
